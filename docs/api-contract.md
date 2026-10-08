@@ -1,38 +1,38 @@
-# API Contract – L2 Tiếp nhận và phân loại yêu cầu bảo hành
+# API Contract — L2 Tiếp nhận và phân loại yêu cầu bảo hành
 
-## 1. Phạm vi
+## API01 — Tra cứu khách hàng
+- US01 — MUST
+- `GET /api/customers?phone={phone}`
+- 200: khách hàng
+- 400: SĐT sai định dạng
+- 404: không tìm thấy
 
-API Contract mô tả các API phục vụ workflow L2 – Tiếp nhận và phân loại yêu cầu bảo hành.
+## API02 — Tạo phiếu
+- US03 — MUST
+- `POST /api/tickets`
+- Request: `customer_id`, `device_id`, `issue_desc`, `category_id`, `priority`
+- 201: `{ "ticket_code": "BH-2026-00125", "status": "MOI" }`
+- 400: dữ liệu không hợp lệ
+- 404: khách hàng/thiết bị không tồn tại
+- 409: ticket_code xung đột
+- 422: thiết bị hết hạn bảo hành
 
-Actor sử dụng API: Nhân viên tiếp nhận.
+## API03 — Phân loại
+- US05 — MUST
+- `PUT /api/tickets/{id}/classification`
+- Request: `category_id`
+- 200: cập nhật thành công
+- 400: category không hợp lệ
+- 404: không tìm thấy ticket
 
-Các endpoint được truy vết trực tiếp với các User Story mức MUST trong SRS.
+## Validation
+| Trường | Kiểm tra |
+|---|---|
+| phone | 10–11 chữ số |
+| customer_id/device_id | số nguyên > 0 |
+| issue_desc | bắt buộc, >= 10 ký tự |
+| category_id | nếu có thì > 0 |
+| priority | CAO / TRUNG_BINH / THAP |
 
----
-
-## 2. API01 – Tra cứu khách hàng
-
-### User Story
-
-US01 – Tra cứu khách hàng theo số điện thoại.
-
-### Method
-
-GET
-
-### Path
-
-`/api/customers?phone={phone}`
-
-### Mục đích
-
-Cho phép nhân viên tiếp nhận tra cứu thông tin khách hàng bằng số điện thoại.
-
-### Request
-
-Không có request body.
-
-Ví dụ:
-
-```text
-GET /api/customers?phone=0901234567
+## Traceability
+API01 → US01; API02 → US03; API03 → US05.
