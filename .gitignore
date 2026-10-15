@@ -1,5 +1,5 @@
 __pycache__/
-*.pyc
+*.py[cod]
 .venv/
 venv/
 .env
@@ -7,3 +7,5 @@ venv/
 *.sqlite
 *.sqlite3
 *.log
+.DS_Store
+Thumbs.db

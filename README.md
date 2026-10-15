@@ -1,46 +1,67 @@
 # L2 — Tiếp nhận và phân loại yêu cầu bảo hành
 
-**Nguyễn Gia Huy — MSSV 2374802010181 — Track SE**  
-GitHub: https://github.com/NguyenGiaHuy1608/cdtn1-nguyengiahuy-l2
+**Sinh viên:** Nguyễn Gia Huy · **MSSV:** 2374802010181 · **Track:** Software Engineering (SE)
+**Repo:** https://github.com/NguyenGiaHuy1608/cdtn1-nguyengiahuy-l2
 
 ## 1. Phạm vi
-L2 tập trung vào tiếp nhận và phân loại yêu cầu bảo hành: tra cứu khách hàng, ghi nhận thiết bị/lỗi, tạo ticket, phân loại, ưu tiên và theo dõi danh sách/hạn xử lý.
+Module Sprint 1 tập trung vào tiếp nhận dữ liệu khách hàng, tra cứu khách hàng theo số điện thoại, tạo phiếu bảo hành, kiểm tra điều kiện cơ bản và xem danh sách phiếu. Các nghiệp vụ phân công kỹ thuật viên, sửa chữa, thanh toán, thông báo tự động và quản lý kho nằm ngoài phạm vi hiện tại.
 
 ## 2. Cấu trúc repo
 ```text
 .
-├── README.md
+├── app.py
+├── requirements.txt
 ├── BT1_2374802010181_NguyenGiaHuy.pdf
-├── docs/
-│   ├── srs.md
-│   ├── usecase.drawio
-│   ├── architecture.drawio
-│   ├── erd.drawio
-│   ├── wireframe.drawio
-│   ├── ai-declaration.md
-│   ├── api-contract.md
-│   └── export/
-└── db/
-    └── schema.sql
+├── src/
+│   ├── routes/          # HTTP endpoints
+│   ├── services/        # business rules
+│   ├── repositories/    # database access
+│   ├── validators/      # input validation
+│   └── errors/          # application errors
+├── templates/            # UI
+├── static/               # CSS/JS
+├── migrations/            # SQLite schema migration
+├── seeds/                 # demo data
+├── db/schema.sql          # canonical schema, matches migration
+├── tests/
+└── docs/
+    ├── srs.md
+    ├── usecase.drawio
+    ├── architecture.drawio
+    ├── erd.drawio
+    ├── wireframe.drawio
+    ├── thay-doi-thiet-ke.md
+    ├── ai-declaration.md
+    └── export/
 ```
 
-## 3. Cách mở file thiết kế
-Mở các file `.drawio` bằng diagrams.net / Draw.io Desktop. Các ảnh trong `docs/export/` là bản xuất để chèn PDF.
+## 3. Môi trường và chạy ứng dụng
+Python 3.11+ được khuyến nghị.
 
-## 4. Quyết định kiến trúc
-Layered là khung tổng thể; Presentation tổ chức theo MVC; Business chứa rule; Repository che giấu SQL; PostgreSQL bảo đảm toàn vẹn. Phụ thuộc đi một chiều từ trên xuống.
+```bash
+python -m venv .venv
+source .venv/Scripts/activate
+pip install -r requirements.txt
+python app.py
+```
 
-## 5. Mô hình dữ liệu
-ERD dùng 5 bảng: `customer`, `device`, `issue_category`, `ticket`, `ticket_status_log`. DDL nằm ở `db/schema.sql`. Index được gắn với truy vấn cụ thể/NFR01.
+Mở `http://127.0.0.1:5000`. Trên Windows CMD, kích hoạt môi trường bằng `.venv\Scripts\activate`.
 
-## 6. Wireframe
-Ba màn hình:
-- M1 — Tra cứu khách hàng / ghi nhận thiết bị
-- M2 — Tạo phiếu bảo hành
-- M3 — Danh sách và theo dõi
+## 4. Chạy kiểm thử
+```bash
+python -m unittest discover -s tests -v
+```
 
-## 7. AI Disclosure
-Xem `docs/ai-declaration.md`.
+Các test bao gồm tạo phiếu thành công, tra cứu khách hàng, dữ liệu đầu vào sai, thiết bị hết hạn và ngăn tạo phiếu mở trùng.
 
-## 8. Bản nộp
-PDF `BT1_2374802010181_NguyenGiaHuy.pdf` là bản để nộp VLU E-learning; repo giữ các file gốc/editable.
+## 5. Quyết định kiến trúc
+Bản prototype hiện dùng SQLite để chạy cục bộ, với bốn phần trách nhiệm: Presentation/Routes, Business/Service, Repository/DAO và Database. Đây là lựa chọn triển khai cho Sprint 1 nhằm giảm chi phí cài đặt; nếu chuyển sang PostgreSQL sau này cần cập nhật migration và kiểm thử lại.
+
+## 6. Nguồn sự thật và tên file
+- SRS: `docs/srs.md`
+- Use Case: `docs/usecase.drawio` (giữ UC06 = Xác định mức ưu tiên; UC07 = Xem danh sách và hạn xử lý)
+- ERD và schema: `docs/erd.drawio`, `db/schema.sql`, `migrations/001_initial_schema.sql`
+- Nhật ký sửa theo phản hồi BT1: `docs/thay-doi-thiet-ke.md`
+- AI Disclosure BT1: `docs/ai-declaration.md`
+
+Các file `.drawio` là bản gốc có thể chỉnh sửa. Khi thay đổi sơ đồ, cần xuất lại PNG trong `docs/export/` để ảnh minh họa khớp với sơ đồ gốc.

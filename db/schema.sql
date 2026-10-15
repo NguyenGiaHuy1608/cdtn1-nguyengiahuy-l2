@@ -1,65 +1,54 @@
--- L2 - Tiếp nhận và phân loại yêu cầu bảo hành
--- Track: Software Engineering
--- PostgreSQL DDL skeleton theo Buổi 5
+-- Canonical SQLite schema for the L2 Sprint 1 prototype.
+-- Kept in sync with migrations/001_initial_schema.sql.
+-- SQLite schema for the local prototype. Table/column names match docs/srs.md and docs/erd.drawio.
+PRAGMA foreign_keys = ON;
 
-CREATE TABLE customer (
-    customer_id BIGSERIAL PRIMARY KEY,
-    full_name VARCHAR(120) NOT NULL,
-    phone VARCHAR(20) NOT NULL UNIQUE,
-    email VARCHAR(120),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+CREATE TABLE IF NOT EXISTS customer (
+    customer_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    full_name TEXT NOT NULL,
+    phone TEXT NOT NULL UNIQUE CHECK (length(phone) BETWEEN 10 AND 11 AND phone NOT GLOB '*[^0-9]*'),
+    email TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE device (
-    device_id BIGSERIAL PRIMARY KEY,
-    customer_id BIGINT NOT NULL REFERENCES customer(customer_id),
-    serial_no VARCHAR(80) NOT NULL UNIQUE,
-    purchase_date DATE NOT NULL,
-    warranty_months INT NOT NULL CHECK (warranty_months > 0)
+CREATE TABLE IF NOT EXISTS device (
+    device_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    customer_id INTEGER NOT NULL REFERENCES customer(customer_id),
+    serial_no TEXT NOT NULL UNIQUE,
+    purchase_date TEXT NOT NULL,
+    warranty_months INTEGER NOT NULL CHECK (warranty_months > 0)
 );
 
-CREATE TABLE issue_category (
-    category_id SERIAL PRIMARY KEY,
-    category_name VARCHAR(100) NOT NULL UNIQUE,
-    description VARCHAR(255)
+CREATE TABLE IF NOT EXISTS issue_category (
+    category_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    category_name TEXT NOT NULL UNIQUE,
+    description TEXT
 );
 
-CREATE TABLE ticket (
-    ticket_id BIGSERIAL PRIMARY KEY,
-    ticket_code VARCHAR(20) NOT NULL UNIQUE,
-    customer_id BIGINT NOT NULL REFERENCES customer(customer_id),
-    device_id BIGINT NOT NULL REFERENCES device(device_id),
-    category_id INT REFERENCES issue_category(category_id),
-    issue_desc TEXT NOT NULL CHECK (length(issue_desc) >= 10),
-    priority VARCHAR(12) NOT NULL CHECK (priority IN ('CAO','TRUNG_BINH','THAP')),
-    status VARCHAR(20) NOT NULL DEFAULT 'MOI',
-    received_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    due_date TIMESTAMPTZ NOT NULL,
-    closed_at TIMESTAMPTZ,
-    CONSTRAINT chk_closed_after_received
-      CHECK (closed_at IS NULL OR closed_at >= received_at)
+CREATE TABLE IF NOT EXISTS ticket (
+    ticket_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ticket_code TEXT NOT NULL UNIQUE,
+    customer_id INTEGER NOT NULL REFERENCES customer(customer_id),
+    device_id INTEGER NOT NULL REFERENCES device(device_id),
+    category_id INTEGER REFERENCES issue_category(category_id),
+    issue_desc TEXT NOT NULL CHECK (length(trim(issue_desc)) >= 10),
+    priority TEXT NOT NULL CHECK (priority IN ('CAO','TRUNG_BINH','THAP')),
+    status TEXT NOT NULL DEFAULT 'MOI',
+    received_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    due_date TEXT NOT NULL,
+    closed_at TEXT,
+    CHECK (closed_at IS NULL OR closed_at >= received_at)
 );
 
-CREATE TABLE ticket_status_log (
-    log_id BIGSERIAL PRIMARY KEY,
-    ticket_id BIGINT NOT NULL REFERENCES ticket(ticket_id),
-    from_status VARCHAR(20),
-    to_status VARCHAR(20) NOT NULL,
-    changed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    changed_by BIGINT NOT NULL
+CREATE TABLE IF NOT EXISTS ticket_status_log (
+    log_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ticket_id INTEGER NOT NULL REFERENCES ticket(ticket_id),
+    from_status TEXT,
+    to_status TEXT NOT NULL,
+    changed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    changed_by INTEGER NOT NULL DEFAULT 1
 );
 
--- Indexes are tied to concrete queries/NFRs.
-CREATE INDEX idx_customer_phone
-ON customer(phone);
-
-CREATE INDEX idx_ticket_status_due
-ON ticket(status, due_date);
-
-CREATE INDEX idx_ticket_log
-ON ticket_status_log(ticket_id, changed_at);
-
--- Traceability:
--- idx_customer_phone -> US01
--- idx_ticket_status_due -> US07 / NFR01
--- ticket_status_log -> US07 (history of status)
+CREATE INDEX IF NOT EXISTS idx_customer_phone ON customer(phone);
+CREATE INDEX IF NOT EXISTS idx_ticket_status_due ON ticket(status, due_date);
+CREATE INDEX IF NOT EXISTS idx_ticket_log ON ticket_status_log(ticket_id, changed_at);
