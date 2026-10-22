@@ -8,6 +8,14 @@ class TicketRepository:
             rows=conn.execute(sql).fetchall()
             return [dict(r) for r in rows]
         finally: conn.close()
+    def get_by_id(self, ticket_id):
+        conn=connect_db()
+        try:
+            sql = 'SELECT t.*, c.full_name, c.phone, c.email, d.serial_no, d.purchase_date, d.warranty_months, ic.category_name, ic.description AS category_description FROM ticket t JOIN customer c ON c.customer_id=t.customer_id JOIN device d ON d.device_id=t.device_id LEFT JOIN issue_category ic ON ic.category_id=t.category_id WHERE t.ticket_id=?'
+            row=conn.execute(sql,(ticket_id,)).fetchone()
+            return dict(row) if row else None
+        finally: conn.close()
+
     def find_open_by_serial(self, serial_no):
         conn=connect_db()
         try:

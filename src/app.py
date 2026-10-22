@@ -1,9 +1,15 @@
+import os
 from flask import Flask, jsonify, render_template
 from src.db import init_db
 from src.routes.api import api
 
 def create_app(test_config=None):
     app=Flask(__name__, template_folder='../templates', static_folder='../static')
+    app.config.update({
+        'SECRET_KEY': os.environ.get('SECRET_KEY', 'local-prototype-secret-change-me'),
+        'DEMO_USERNAME': os.environ.get('DEMO_USERNAME', 'demo'),
+        'DEMO_PASSWORD': os.environ.get('DEMO_PASSWORD', 'demo123'),
+    })
     app.config.update(test_config or {})
     if app.config.get('INIT_DB', True): init_db(seed=True)
     app.register_blueprint(api)

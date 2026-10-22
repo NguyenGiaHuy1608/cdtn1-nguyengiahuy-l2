@@ -1,6 +1,92 @@
 <!doctype html>
-<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Tiếp nhận bảo hành</title><link rel="stylesheet" href="/static/style.css"></head>
-<body><main><header><h1>Tiếp nhận và phân loại yêu cầu bảo hành</h1><p>Prototype L2 · Sprint 1</p></header>
-<section class="panel"><h2>1. Tra cứu khách hàng</h2><form id="customer-search-form"><input name="phone" placeholder="Số điện thoại 10–11 số" required><button>Tra cứu</button></form><p id="customer-search-msg" role="status"></p><pre id="customer-result"></pre><h3>Tạo hồ sơ khách hàng</h3><form id="customer-form"><input name="full_name" placeholder="Họ tên" required><input name="phone" placeholder="Số điện thoại 10–11 số" required><input name="email" placeholder="Email (không bắt buộc)"><button>Tạo khách hàng</button></form><p id="customer-msg" role="status"></p><button id="load-customers" class="secondary">Tải danh sách khách hàng</button><pre id="customers"></pre></section>
-<section class="panel"><h2>2. Tạo phiếu bảo hành</h2><p class="hint">Dữ liệu demo: khách hàng 1, thiết bị 1, nhóm lỗi 1. Thiết bị demo 2 đã hết hạn bảo hành.</p><form id="ticket-form"><input name="customer_id" type="number" min="1" placeholder="Mã khách hàng" required><input name="device_id" type="number" min="1" placeholder="Mã thiết bị" required><input name="category_id" type="number" min="1" placeholder="Mã nhóm lỗi" required><select name="priority"><option value="TRUNG_BINH">Trung bình</option><option value="CAO">Cao</option><option value="THAP">Thấp</option></select><textarea name="issue_desc" minlength="10" placeholder="Mô tả lỗi (ít nhất 10 ký tự)" required></textarea><button>Tạo phiếu</button></form><p id="ticket-msg" role="status"></p></section>
-<section class="panel"><h2>3. Danh sách phiếu</h2><button id="load-tickets" class="secondary">Tải danh sách phiếu</button><pre id="tickets"></pre></section><footer>BT2 · L2 · SQLite prototype · API JSON</footer></main><script src="/static/app.js"></script></body></html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#12304a">
+  <title>Mekong Mobile · Tiếp nhận bảo hành</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <section id="login-view" class="login-view">
+    <form id="login-form" class="login-card">
+      <div class="brand-mark login-mark" aria-hidden="true">MM</div>
+      <p class="eyebrow">MEKONG MOBILE · SMART CRM</p>
+      <h1>Đăng nhập hệ thống</h1>
+      <p class="login-intro">Đăng nhập để tiếp tục tiếp nhận và theo dõi yêu cầu bảo hành.</p>
+      <label>Tên đăng nhập<input name="username" autocomplete="username" required value="demo"></label>
+      <label>Mật khẩu<input name="password" type="password" autocomplete="current-password" required placeholder="Nhập mật khẩu" value="demo123"></label>
+      <button class="button button-primary login-submit" type="submit">Đăng nhập</button>
+      <p id="login-message" class="form-message" aria-live="polite"></p>
+      <p class="login-demo-note">Tài khoản demo mặc định: <strong>demo</strong> / <strong>demo123</strong>. Có thể thay đổi bằng biến môi trường.</p>
+    </form>
+  </section>
+  <div class="app-shell" id="app-shell" hidden>
+    <header class="app-header">
+      <div class="brand-mark" aria-hidden="true">MM</div>
+      <div class="brand-copy"><p class="eyebrow">MEKONG MOBILE · SMART CRM</p><h1>Tiếp nhận bảo hành</h1><p class="subtitle">Tiếp nhận và phân loại yêu cầu bảo hành · Sprint 2</p></div>
+      <div class="header-status"><span class="status-dot"></span> Prototype cục bộ <button id="logout-button" class="logout-button" type="button">Đăng xuất</button></div>
+    </header>
+
+    <nav class="main-nav" aria-label="Điều hướng chính">
+      <button class="nav-link active" data-view="receive" type="button">Tiếp nhận</button>
+      <button class="nav-link" data-view="tickets" type="button">Danh sách phiếu</button>
+      <button class="nav-link" data-view="detail" type="button">Chi tiết phiếu</button>
+      <button class="nav-link" data-view="catalog" type="button">Dữ liệu nền</button>
+    </nav>
+
+    <main>
+      <section class="view active" id="view-receive" aria-labelledby="receive-title">
+        <div class="page-heading"><div><p class="eyebrow">WORKFLOW 01</p><h2 id="receive-title">Tiếp nhận yêu cầu mới</h2><p>Tra cứu hoặc tạo hồ sơ khách hàng, chọn thiết bị và ghi nhận lỗi bảo hành.</p></div><span class="step-pill">01 / 03</span></div>
+        <div class="two-column">
+          <section class="panel">
+            <div class="panel-heading"><div><span class="section-number">A</span><h3>Thông tin khách hàng</h3></div><span class="muted-label">Bước 1</span></div>
+            <form id="customer-search-form" class="search-row"><label class="sr-only" for="search-phone">Số điện thoại</label><input id="search-phone" name="phone" inputmode="numeric" placeholder="Nhập số điện thoại 10–11 số" required><button type="submit" class="button button-primary">Tra cứu</button></form>
+            <div id="customer-search-state" class="data-state compact" aria-live="polite" hidden></div>
+            <div id="customer-result" class="result-card empty-hint">Tra cứu khách hàng theo số điện thoại để kiểm tra hồ sơ hiện có.</div>
+            <details class="create-customer"><summary>Khách hàng mới? Tạo hồ sơ</summary>
+              <form id="customer-form" class="form-grid customer-grid"><label>Họ và tên<input name="full_name" autocomplete="name" placeholder="Nguyễn Văn A" required></label><label>Số điện thoại<input name="phone" inputmode="numeric" placeholder="10–11 chữ số" required pattern="[0-9]{10,11}"></label><label class="full-span">Email (không bắt buộc)<input name="email" type="email" autocomplete="email" placeholder="name@example.com"></label><button type="submit" class="button button-primary">Tạo khách hàng</button></form>
+              <p id="customer-msg" class="form-message" aria-live="polite"></p>
+            </details>
+          </section>
+          <section class="panel">
+            <div class="panel-heading"><div><span class="section-number">B</span><h3>Thông tin thiết bị</h3></div><span class="muted-label">Bước 2</span></div>
+            <p class="panel-description">Dữ liệu được lấy trực tiếp từ API và database SQLite.</p>
+            <div id="device-picker-state" class="data-state compact" aria-live="polite"></div>
+            <form id="ticket-form" class="form-grid">
+              <label>Khách hàng<select name="customer_id" id="ticket-customer" required><option value="">Đang tải khách hàng…</option></select></label>
+              <label>Thiết bị<select name="device_id" id="ticket-device" required><option value="">Đang tải thiết bị…</option></select></label>
+              <label>Nhóm lỗi<select name="category_id" id="ticket-category" required><option value="">Đang tải nhóm lỗi…</option></select></label>
+              <label>Mức ưu tiên<select name="priority"><option value="TRUNG_BINH">Trung bình</option><option value="CAO">Cao</option><option value="THAP">Thấp</option></select></label>
+              <label class="full-span">Mô tả lỗi<textarea name="issue_desc" minlength="10" rows="4" placeholder="Mô tả hiện trạng thiết bị (ít nhất 10 ký tự)" required></textarea><small>Nhập tối thiểu 10 ký tự để mô tả rõ sự cố.</small></label>
+              <div class="full-span form-actions"><button type="submit" class="button button-primary" id="create-ticket-button">Tạo phiếu bảo hành</button><button type="reset" class="button button-secondary">Xóa nội dung</button></div>
+            </form>
+            <p id="ticket-msg" class="form-message" aria-live="polite"></p>
+          </section>
+        </div>
+      </section>
+
+      <section class="view" id="view-tickets" aria-labelledby="tickets-title" hidden>
+        <div class="page-heading"><div><p class="eyebrow">WORKFLOW 02</p><h2 id="tickets-title">Danh sách phiếu bảo hành</h2><p>Theo dõi thông tin tiếp nhận, khách hàng, thiết bị và trạng thái xử lý.</p></div><button class="button button-secondary" id="refresh-tickets" type="button">Làm mới danh sách</button></div>
+        <div class="panel"><div id="tickets-state" class="data-state" aria-live="polite"></div><div id="tickets-table-wrap" class="table-wrap"></div></div>
+      </section>
+
+      <section class="view" id="view-detail" aria-labelledby="detail-title" hidden>
+        <div class="page-heading"><div><p class="eyebrow">WORKFLOW 03</p><h2 id="detail-title">Chi tiết phiếu bảo hành</h2><p>Chọn một phiếu trong danh sách để xem đầy đủ thông tin.</p></div><button class="button button-secondary" id="back-to-tickets" type="button">Quay lại danh sách</button></div>
+        <div class="panel"><div id="ticket-detail-state" class="data-state" aria-live="polite">Chưa chọn phiếu bảo hành.</div><div id="ticket-detail-content"></div></div>
+      </section>
+
+      <section class="view" id="view-catalog" aria-labelledby="catalog-title" hidden>
+        <div class="page-heading"><div><p class="eyebrow">REFERENCE DATA</p><h2 id="catalog-title">Dữ liệu nền</h2><p>Danh sách thiết bị và nhóm lỗi đang được dùng khi tiếp nhận bảo hành.</p></div><button class="button button-secondary" id="refresh-catalog" type="button">Làm mới dữ liệu</button></div>
+        <div class="catalog-grid"><section class="panel"><div class="panel-heading"><h3>Khách hàng</h3><span id="customer-count" class="count-pill">—</span></div><div id="catalog-customers-state" class="data-state" aria-live="polite"></div><div id="catalog-customers-table-wrap" class="table-wrap"></div></section><section class="panel"><div class="panel-heading"><h3>Thiết bị</h3><span id="device-count" class="count-pill">—</span></div><div id="devices-state" class="data-state" aria-live="polite"></div><div id="devices-table-wrap" class="table-wrap"></div></section><section class="panel"><div class="panel-heading"><h3>Nhóm lỗi</h3><span id="category-count" class="count-pill">—</span></div><div id="categories-state" class="data-state" aria-live="polite"></div><div id="categories-table-wrap" class="table-wrap"></div></section></div>
+      </section>
+    </main>
+    <footer><span>BT2 · L2 · SQLite prototype · REST API</span><span id="api-health"><span class="status-dot"></span> Đang kiểm tra kết nối…</span></footer>
+  </div>
+  <script src="/static/api/client.js"></script>
+  <script src="/static/api/customers.api.js"></script>
+  <script src="/static/api/tickets.api.js"></script>
+  <script src="/static/api/catalog.api.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>

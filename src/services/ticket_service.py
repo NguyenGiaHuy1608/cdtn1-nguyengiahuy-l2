@@ -6,6 +6,7 @@ from src.validators.ticket_validator import validate_ticket
 class TicketService:
     def __init__(self, repo=None): self.repo=repo or TicketRepository()
     def list(self): return self.repo.list()
+    def get_by_id(self, ticket_id): return self.repo.get_by_id(ticket_id)
     def create(self, payload):
         data=validate_ticket(payload)
         customer=self.repo.get_customer(data['customer_id'])
