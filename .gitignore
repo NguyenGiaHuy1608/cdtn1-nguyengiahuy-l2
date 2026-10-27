@@ -9,3 +9,8 @@ venv/
 *.log
 .DS_Store
 Thumbs.db
+# Generated datasets and model artifacts
+data/issue_training_clean.csv
+models/issue_classifier.json
+
+# Local report assets that are not ready for submission

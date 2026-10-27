@@ -1,4 +1,11 @@
 import os
+from pathlib import Path
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).resolve().parent.parent / '.env')
+except ImportError:
+    # Variables can still be provided directly by the operating system.
+    pass
 from flask import Flask, jsonify, render_template
 from src.db import init_db
 from src.routes.api import api

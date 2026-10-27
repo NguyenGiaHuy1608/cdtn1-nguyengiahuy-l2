@@ -4,14 +4,14 @@ class TicketRepository:
     def list(self):
         conn=connect_db()
         try:
-            sql = 'SELECT t.*, c.full_name, c.phone, d.serial_no, ic.category_name FROM ticket t JOIN customer c ON c.customer_id=t.customer_id JOIN device d ON d.device_id=t.device_id LEFT JOIN issue_category ic ON ic.category_id=t.category_id ORDER BY t.ticket_id DESC'
+            sql = 'SELECT t.*, c.full_name, c.phone, d.serial_no, d.device_type, d.brand, d.model, ic.category_name FROM ticket t JOIN customer c ON c.customer_id=t.customer_id JOIN device d ON d.device_id=t.device_id LEFT JOIN issue_category ic ON ic.category_id=t.category_id ORDER BY t.ticket_id DESC'
             rows=conn.execute(sql).fetchall()
             return [dict(r) for r in rows]
         finally: conn.close()
     def get_by_id(self, ticket_id):
         conn=connect_db()
         try:
-            sql = 'SELECT t.*, c.full_name, c.phone, c.email, d.serial_no, d.purchase_date, d.warranty_months, ic.category_name, ic.description AS category_description FROM ticket t JOIN customer c ON c.customer_id=t.customer_id JOIN device d ON d.device_id=t.device_id LEFT JOIN issue_category ic ON ic.category_id=t.category_id WHERE t.ticket_id=?'
+            sql = 'SELECT t.*, c.full_name, c.phone, c.email, d.serial_no, d.device_type, d.brand, d.model, d.purchase_date, d.warranty_months, ic.category_name, ic.description AS category_description FROM ticket t JOIN customer c ON c.customer_id=t.customer_id JOIN device d ON d.device_id=t.device_id LEFT JOIN issue_category ic ON ic.category_id=t.category_id WHERE t.ticket_id=?'
             row=conn.execute(sql,(ticket_id,)).fetchone()
             return dict(row) if row else None
         finally: conn.close()
@@ -48,3 +48,30 @@ class TicketRepository:
             conn.commit(); row=conn.execute('SELECT * FROM ticket WHERE ticket_id=?',(ticket_id,)).fetchone()
             return dict(row)
         finally: conn.close()
+
+    def update(self, ticket_id, data):
+        conn = connect_db()
+        try:
+            row = conn.execute('SELECT * FROM ticket WHERE ticket_id=?', (ticket_id,)).fetchone()
+            if not row:
+                return None
+            conn.execute('UPDATE ticket SET issue_desc=?, priority=? WHERE ticket_id=?',
+                         (data['issue_desc'], data['priority'], ticket_id))
+            conn.commit()
+            updated = conn.execute('SELECT * FROM ticket WHERE ticket_id=?', (ticket_id,)).fetchone()
+            return dict(updated) if updated else None
+        finally:
+            conn.close()
+
+    def delete(self, ticket_id):
+        conn = connect_db()
+        try:
+            row = conn.execute('SELECT ticket_id FROM ticket WHERE ticket_id=?', (ticket_id,)).fetchone()
+            if not row:
+                return False
+            conn.execute('DELETE FROM ticket_status_log WHERE ticket_id=?', (ticket_id,))
+            conn.execute('DELETE FROM ticket WHERE ticket_id=?', (ticket_id,))
+            conn.commit()
+            return True
+        finally:
+            conn.close()

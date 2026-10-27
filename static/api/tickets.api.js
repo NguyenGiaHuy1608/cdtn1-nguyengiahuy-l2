@@ -2,6 +2,8 @@
   global.TicketsApi = {
     list: async () => (await global.ApiClient.get('/api/tickets')).data,
     get: async (id) => (await global.ApiClient.get('/api/tickets/' + encodeURIComponent(id))).data,
-    create: async (data) => (await global.ApiClient.post('/api/tickets', data)).data
+    create: async (data) => (await global.ApiClient.post('/api/tickets', data)).data,
+    update: async (id, data) => (await global.ApiClient.put('/api/tickets/' + encodeURIComponent(id), data)).data,
+    remove: async (id) => (await global.ApiClient.delete('/api/tickets/' + encodeURIComponent(id))).data
   };
 })(window);

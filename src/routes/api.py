@@ -47,6 +47,18 @@ def create_customer():
     try: return jsonify({'data':customers.create(request.get_json(silent=True))}),201
     except AppError as e: return error_response(e)
 
+@api.put('/customers/<int:customer_id>')
+def update_customer(customer_id):
+    try: return jsonify({'data': customers.update(customer_id, request.get_json(silent=True))})
+    except AppError as e: return error_response(e)
+
+@api.delete('/customers/<int:customer_id>')
+def delete_customer(customer_id):
+    try:
+        customers.delete(customer_id)
+        return jsonify({'data': {'deleted': True, 'customer_id': customer_id}})
+    except AppError as e: return error_response(e)
+
 @api.get('/tickets')
 def list_tickets(): return jsonify({'data':tickets.list()})
 
@@ -55,10 +67,34 @@ def create_ticket():
     try: return jsonify({'data':tickets.create(request.get_json(silent=True))}),201
     except AppError as e: return error_response(e)
 
+@api.put('/tickets/<int:ticket_id>')
+def update_ticket(ticket_id):
+    try: return jsonify({'data': tickets.update(ticket_id, request.get_json(silent=True))})
+    except AppError as e: return error_response(e)
+
+@api.delete('/tickets/<int:ticket_id>')
+def delete_ticket(ticket_id):
+    try:
+        tickets.delete(ticket_id)
+        return jsonify({'data': {'deleted': True, 'ticket_id': ticket_id}})
+    except AppError as e: return error_response(e)
+
 
 @api.get('/devices')
 def list_devices():
-    return jsonify({'data': catalog.list_devices()})
+    customer_id = request.args.get('customer_id')
+    try:
+        return jsonify({'data': catalog.list_devices(customer_id)})
+    except AppError as e:
+        return error_response(e)
+
+
+@api.post('/devices')
+def create_device():
+    try:
+        return jsonify({'data': catalog.create_device(request.get_json(silent=True))}), 201
+    except AppError as e:
+        return error_response(e)
 
 @api.get('/categories')
 def list_categories():

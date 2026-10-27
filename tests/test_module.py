@@ -84,4 +84,93 @@ class ModuleTests(unittest.TestCase):
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.json['error'], 'TOKEN_KHONG_HOP_LE')
 
+    def test_customer_update_persists_to_database(self):
+        response = self.client.put('/api/customers/1', json={
+            'full_name': 'Nguyễn Minh Anh cập nhật', 'phone': '0901234567', 'email': 'new@example.com'
+        })
+        self.assertEqual(response.status_code, 200)
+        listed = self.client.get('/api/customers').json['data']
+        customer = next(row for row in listed if row['customer_id'] == 1)
+        self.assertEqual(customer['full_name'], 'Nguyễn Minh Anh cập nhật')
+        self.assertEqual(customer['email'], 'new@example.com')
+
+    def test_customer_delete_removes_unlinked_customer(self):
+        created = self.client.post('/api/customers', json={
+            'full_name': 'Khách hàng thử xóa', 'phone': '0987654321', 'email': 'delete@example.com'
+        })
+        self.assertEqual(created.status_code, 201)
+        customer_id = created.json['data']['customer_id']
+        response = self.client.delete(f'/api/customers/{customer_id}')
+        self.assertEqual(response.status_code, 200)
+        detail = self.client.get(f'/api/customers?phone=0987654321')
+        self.assertEqual(detail.status_code, 404)
+
+    def test_customer_delete_rejects_customer_with_device(self):
+        response = self.client.delete('/api/customers/1')
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.json['error'], 'KHACH_HANG_DANG_DUOC_SU_DUNG')
+
+    def test_ticket_update_persists_to_database(self):
+        created = self.client.post('/api/tickets', json={
+            'customer_id': 1, 'device_id': 1, 'category_id': 1,
+            'issue_desc': 'Màn hình nhấp nháy liên tục', 'priority': 'TRUNG_BINH'
+        }).json['data']
+        response = self.client.put(f"/api/tickets/{created['ticket_id']}", json={
+            'issue_desc': 'Màn hình nhấp nháy sau khi khởi động', 'priority': 'CAO'
+        })
+        self.assertEqual(response.status_code, 200)
+        detail = self.client.get(f"/api/tickets/{created['ticket_id']}").json['data']
+        self.assertEqual(detail['priority'], 'CAO')
+        self.assertEqual(detail['issue_desc'], 'Màn hình nhấp nháy sau khi khởi động')
+
+    def test_ticket_delete_removes_record(self):
+        created = self.client.post('/api/tickets', json={
+            'customer_id': 1, 'device_id': 1, 'category_id': 1,
+            'issue_desc': 'Màn hình nhấp nháy liên tục', 'priority': 'TRUNG_BINH'
+        }).json['data']
+        response = self.client.delete(f"/api/tickets/{created['ticket_id']}")
+        self.assertEqual(response.status_code, 200)
+        detail = self.client.get(f"/api/tickets/{created['ticket_id']}")
+        self.assertEqual(detail.status_code, 404)
+
+    def test_invalid_ticket_payload_is_rejected(self):
+        response = self.client.post('/api/tickets', json={
+            'customer_id': 1, 'device_id': 1, 'category_id': 1,
+            'issue_desc': 'ngắn', 'priority': 'CAO'
+        })
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('issue_desc', response.json['message'])
+
+    def test_create_device_for_customer_and_filter_by_customer(self):
+        response = self.client.post('/api/devices', json={
+            'customer_id': 1,
+            'device_type': 'Laptop',
+            'brand': 'Lenovo',
+            'model': 'ThinkPad T14',
+            'serial_no': 'TEST-LAPTOP-001',
+            'purchase_date': '2026-01-15',
+            'warranty_months': 24,
+        })
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json['data']['device_type'], 'Laptop')
+        self.assertEqual(response.json['data']['customer_id'], 1)
+
+        customer_devices = self.client.get('/api/devices?customer_id=1').json['data']
+        self.assertTrue(any(device['serial_no'] == 'TEST-LAPTOP-001' for device in customer_devices))
+        other_customer_devices = self.client.get('/api/devices?customer_id=2').json['data']
+        self.assertFalse(any(device['serial_no'] == 'TEST-LAPTOP-001' for device in other_customer_devices))
+
+    def test_create_device_rejects_invalid_type(self):
+        response = self.client.post('/api/devices', json={
+            'customer_id': 1,
+            'device_type': 'Microwave',
+            'brand': 'Test',
+            'model': 'Model X',
+            'serial_no': 'TEST-INVALID-TYPE',
+            'purchase_date': '2026-01-15',
+            'warranty_months': 12,
+        })
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['error'], 'LOAI_THIET_BI_KHONG_HOP_LE')
+
 if __name__ == '__main__': unittest.main()

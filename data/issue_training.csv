@@ -1,0 +1,13 @@
+text,label
+"Màn hình bị nứt và hiển thị sọc",MAN_HINH
+"Màn hình nhấp nháy liên tục",MAN_HINH
+"Điện thoại không lên nguồn",NGUON
+"Máy tự tắt khi bật nguồn",NGUON
+"Pin tụt nhanh dù không sử dụng",PIN
+"Điện thoại sạc lâu đầy và nóng",PIN
+"Màn hình cảm ứng không phản hồi",MAN_HINH
+"Bấm nút nguồn nhưng máy không khởi động",NGUON
+"Pin phồng và thời lượng sử dụng thấp",PIN
+"Màn hình tối đen nhưng máy vẫn rung",MAN_HINH
+"Không thể bật điện thoại sau khi sạc",NGUON
+"Phần trăm pin giảm nhanh",PIN

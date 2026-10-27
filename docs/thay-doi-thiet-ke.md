@@ -32,7 +32,7 @@
 - **Phản hồi:** SRS còn câu nháp “Các ngưỡng dưới đây là bản dự thảo…” và tên tệp nộp thừa tiền tố.
 - **Quyết định:** SỬA.
 - **Lý do:** Tài liệu bàn giao không nên còn ghi chú biên tập chưa hoàn tất.
-- **Ảnh hưởng:** SRS giữ các ngưỡng NFR như mục tiêu cần kiểm thử; tên PDF nộp dùng `BT1_2374802010181_NguyenGiaHuy.pdf`.
+- **Ảnh hưởng:** SRS giữ các ngưỡng NFR như mục tiêu cần kiểm thử; tên PDF nộp dùng `BT2_2374802010181_NguyenGiaHuy.pdf`.
 
 ## TD-06 — Lập luận đánh đổi kiến trúc cụ thể hơn
 - **Phản hồi:** Lập luận kiến trúc chưa nói rõ chi phí và cách đo.

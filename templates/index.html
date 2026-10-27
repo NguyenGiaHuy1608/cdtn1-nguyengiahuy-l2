@@ -56,11 +56,36 @@
             <form id="ticket-form" class="form-grid">
               <label>Khách hàng<select name="customer_id" id="ticket-customer" required><option value="">Đang tải khách hàng…</option></select></label>
               <label>Thiết bị<select name="device_id" id="ticket-device" required><option value="">Đang tải thiết bị…</option></select></label>
+              <div class="full-span form-actions"><button type="button" class="button button-secondary" id="add-device-button">+ Thêm thiết bị</button></div>
               <label>Nhóm lỗi<select name="category_id" id="ticket-category" required><option value="">Đang tải nhóm lỗi…</option></select></label>
               <label>Mức ưu tiên<select name="priority"><option value="TRUNG_BINH">Trung bình</option><option value="CAO">Cao</option><option value="THAP">Thấp</option></select></label>
               <label class="full-span">Mô tả lỗi<textarea name="issue_desc" minlength="10" rows="4" placeholder="Mô tả hiện trạng thiết bị (ít nhất 10 ký tự)" required></textarea><small>Nhập tối thiểu 10 ký tự để mô tả rõ sự cố.</small></label>
               <div class="full-span form-actions"><button type="submit" class="button button-primary" id="create-ticket-button">Tạo phiếu bảo hành</button><button type="reset" class="button button-secondary">Xóa nội dung</button></div>
             </form>
+                          <section class="full-span panel device-create-panel" id="device-create-panel" hidden>
+                <h4>Đăng ký thiết bị cho khách hàng đang chọn</h4>
+                <form id="device-create-form" class="form-grid">
+                  <label>Loại thiết bị
+                    <select name="device_type" required>
+                      <option value="Điện thoại">Điện thoại</option>
+                      <option value="Máy tính bảng">Máy tính bảng</option>
+                      <option value="Laptop">Laptop</option>
+                      <option value="Khác">Khác</option>
+                    </select>
+                  </label>
+                  <label>Hãng<input name="brand" placeholder="Apple, Samsung..." required></label>
+                  <label>Model<input name="model" placeholder="iPhone 15..." required></label>
+                  <label>Serial/IMEI<input name="serial_no" required></label>
+                  <label>Ngày mua<input name="purchase_date" type="date" required></label>
+                  <label>Thời hạn bảo hành (tháng)<input name="warranty_months" type="number" min="1" max="120" value="12" required></label>
+                  <div class="full-span form-actions">
+                    <button type="submit" class="button button-primary">Lưu thiết bị</button>
+                    <button type="button" class="button button-secondary" id="cancel-add-device">Hủy</button>
+                  </div>
+                  <p id="device-create-msg" class="form-message full-span" aria-live="polite"></p>
+                </form>
+              </section>
+
             <p id="ticket-msg" class="form-message" aria-live="polite"></p>
           </section>
         </div>

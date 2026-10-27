@@ -57,24 +57,104 @@
     select.innerHTML = '<option value="">Chọn khách hàng</option>' + state.customers.map((c) => `<option value="${c.customer_id}">${escapeHtml(c.full_name)} · ${escapeHtml(c.phone)} (ID ${c.customer_id})</option>`).join('');
     if (state.customers.some((c) => String(c.customer_id) === previous)) select.value = previous;
   }
+  function renderDeviceOptions(customerId) {
+    const select = $('ticket-device');
+    const devices = customerId
+      ? state.devices.filter((device) => String(device.customer_id) === String(customerId))
+      : [];
+    select.innerHTML = '<option value="">Chọn thiết bị</option>' + devices.map((d) => {
+      const brand = d.brand && d.brand !== 'Khác' ? d.brand : 'Chưa rõ hãng';
+      const model = d.model && d.model !== 'Chưa cập nhật' ? d.model : 'Chưa cập nhật model';
+      return `<option value="${d.device_id}" data-customer="${d.customer_id}">${escapeHtml(d.device_type || 'Thiết bị')} · ${escapeHtml(brand)} ${escapeHtml(model)} · Serial: ${escapeHtml(d.serial_no)}</option>`;
+    }).join('');
+    if (customerId && !devices.length) {
+      setState('device-picker-state', 'empty', 'Khách hàng này chưa có thiết bị. Nhấn “+ Thêm thiết bị” để đăng ký.');
+    } else if (customerId) clearState('device-picker-state');
+  }
+
   async function loadPickerData() {
     setState('device-picker-state', 'loading', 'Đang tải dữ liệu khách hàng, thiết bị và nhóm lỗi…');
     try {
       const results = await Promise.all([CustomersApi.list(), CatalogApi.devices(), CatalogApi.categories()]);
       [state.customers, state.devices, state.categories] = results;
       renderCustomerOptions();
-      $('ticket-device').innerHTML = '<option value="">Chọn thiết bị</option>' + state.devices.map((d) => `<option value="${d.device_id}" data-customer="${d.customer_id}" ${d.warranty_status === 'HET_HAN' ? 'disabled' : ''}>${escapeHtml(d.serial_no)} · ${escapeHtml(d.customer_name)} · ${d.warranty_status === 'HET_HAN' ? 'Hết hạn' : 'Còn hạn'}</option>`).join('');
+      renderDeviceOptions($('ticket-customer').value);
       $('ticket-category').innerHTML = '<option value="">Chọn nhóm lỗi</option>' + state.categories.map((c) => `<option value="${c.category_id}">${escapeHtml(c.category_name)}${c.description ? ' · ' + escapeHtml(c.description) : ''}</option>`).join('');
-      if (!state.customers.length || !state.devices.length || !state.categories.length) {
-        setState('device-picker-state', 'empty', 'Một hoặc nhiều danh mục chưa có dữ liệu. Hãy kiểm tra database/seed.');
-      } else clearState('device-picker-state');
+      if (!state.customers.length) setState('device-picker-state', 'empty', 'Chưa có khách hàng. Hãy tạo hồ sơ khách hàng trước.');
+      else if (!state.categories.length) setState('device-picker-state', 'empty', 'Chưa có nhóm lỗi trong database.');
+      else if (!$('ticket-customer').value) setState('device-picker-state', 'empty', 'Hãy chọn khách hàng để xem thiết bị đã đăng ký.');
+      else if (state.devices.some((d) => String(d.customer_id) === $('ticket-customer').value)) clearState('device-picker-state');
     } catch (error) {
       setState('device-picker-state', 'error', `Không tải được dữ liệu nền: ${error.message}`, loadPickerData);
     }
   }
+
+  $('ticket-customer').addEventListener('change', (event) => renderDeviceOptions(event.target.value));
+
   $('ticket-device').addEventListener('change', (event) => {
     const option = event.target.selectedOptions[0];
     if (option && option.dataset.customer) $('ticket-customer').value = option.dataset.customer;
+  });
+
+  const addDeviceButton = $('add-device-button');
+  const deviceCreatePanel = $('device-create-panel');
+  const deviceCreateForm = $('device-create-form');
+  const deviceCreateMessage = $('device-create-msg');
+
+  addDeviceButton.addEventListener('click', () => {
+    const customerId = $('ticket-customer').value;
+    if (!customerId) {
+      setState('device-picker-state', 'error', 'Vui lòng chọn khách hàng trước khi thêm thiết bị.');
+      return;
+    }
+    deviceCreatePanel.hidden = !deviceCreatePanel.hidden;
+    if (!deviceCreatePanel.hidden) {
+      const dateInput = deviceCreateForm.elements.purchase_date;
+      if (!dateInput.value) dateInput.value = new Date().toISOString().slice(0, 10);
+      deviceCreateMessage.textContent = '';
+      deviceCreateForm.elements.brand.focus();
+    }
+  });
+
+  $('cancel-add-device').addEventListener('click', () => {
+    deviceCreatePanel.hidden = true;
+    deviceCreateForm.reset();
+  });
+
+  deviceCreateForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const customerId = $('ticket-customer').value;
+    if (!customerId) {
+      deviceCreateMessage.className = 'form-message error';
+      deviceCreateMessage.textContent = 'Vui lòng chọn khách hàng trước khi lưu thiết bị.';
+      return;
+    }
+    const button = deviceCreateForm.querySelector('button[type="submit"]');
+    button.disabled = true;
+    button.textContent = 'Đang lưu…';
+    deviceCreateMessage.className = 'form-message';
+    deviceCreateMessage.textContent = '';
+    try {
+      const payload = Object.fromEntries(new FormData(deviceCreateForm));
+      payload.customer_id = Number(customerId);
+      payload.warranty_months = Number(payload.warranty_months);
+      const device = await CatalogApi.createDevice(payload);
+      state.devices.push(device);
+      renderDeviceOptions(customerId);
+      $('ticket-device').value = String(device.device_id);
+      deviceCreatePanel.hidden = true;
+      deviceCreateForm.reset();
+      deviceCreateMessage.className = 'form-message success';
+      deviceCreateMessage.textContent = 'Đã lưu thiết bị vào database và liên kết với khách hàng.';
+      clearState('device-picker-state');
+      if ($('view-catalog') && $('view-catalog').classList.contains('active')) await loadCatalog();
+    } catch (error) {
+      deviceCreateMessage.className = 'form-message error';
+      deviceCreateMessage.textContent = `Không thể thêm thiết bị: ${error.message}`;
+    } finally {
+      button.disabled = false;
+      button.textContent = 'Lưu thiết bị';
+    }
   });
 
   $('customer-search-form').addEventListener('submit', async (event) => {
@@ -86,6 +166,7 @@
       const customer = await CustomersApi.findByPhone(phone);
       output.innerHTML = `<div class="result-top"><div><span class="eyebrow">HỒ SƠ KHÁCH HÀNG</span><h4>${escapeHtml(customer.full_name)}</h4></div><span class="count-pill">ID ${customer.customer_id}</span></div><dl class="detail-list"><div><dt>Số điện thoại</dt><dd>${escapeHtml(customer.phone)}</dd></div><div><dt>Email</dt><dd>${escapeHtml(customer.email || 'Chưa cập nhật')}</dd></div><div><dt>Ngày tạo</dt><dd>${escapeHtml(dateText(customer.created_at))}</dd></div></dl>`;
       $('ticket-customer').value = String(customer.customer_id);
+      renderDeviceOptions(customer.customer_id);
     } catch (error) {
       output.className = 'result-card error-card'; output.textContent = error.message;
     }
@@ -100,6 +181,7 @@
       $('customer-msg').className = 'form-message success'; $('customer-msg').textContent = `Tạo khách hàng thành công · ID ${customer.customer_id}`;
       form.reset(); await loadPickerData();
       $('ticket-customer').value = String(customer.customer_id);
+      renderDeviceOptions(customer.customer_id);
     } catch (error) {
       $('customer-msg').className = 'form-message error'; $('customer-msg').textContent = error.message;
     } finally { button.disabled = false; button.textContent = 'Tạo khách hàng'; }
@@ -128,9 +210,42 @@
       state.tickets = await TicketsApi.list();
       clearState('tickets-state');
       if (!state.tickets.length) { setState('tickets-state', 'empty', 'Chưa có phiếu bảo hành nào. Hãy tạo phiếu đầu tiên ở màn hình Tiếp nhận.'); return; }
-      $('tickets-table-wrap').innerHTML = `<table><thead><tr><th>Mã phiếu</th><th>Khách hàng</th><th>Thiết bị</th><th>Ưu tiên</th><th>Trạng thái</th><th>Hạn xử lý</th><th></th></tr></thead><tbody>${state.tickets.map((t) => `<tr><td><strong>${escapeHtml(t.ticket_code)}</strong><small>ID ${t.ticket_id}</small></td><td>${escapeHtml(t.full_name)}<small>${escapeHtml(t.phone)}</small></td><td>${escapeHtml(t.serial_no)}</td><td><span class="priority priority-${escapeHtml(t.priority).toLowerCase()}">${escapeHtml(prettyPriority(t.priority))}</span></td><td><span class="status-badge">${escapeHtml(prettyStatus(t.status))}</span></td><td>${escapeHtml(dateText(t.due_date))}</td><td><button class="text-button" data-ticket-id="${t.ticket_id}" type="button">Xem chi tiết →</button></td></tr>`).join('')}</tbody></table>`;
+      $('tickets-table-wrap').innerHTML = `<table><thead><tr><th>Mã phiếu</th><th>Khách hàng</th><th>Thiết bị</th><th>Ưu tiên</th><th>Trạng thái</th><th>Hạn xử lý</th><th>Thao tác</th></tr></thead><tbody>${state.tickets.map((t) => `<tr><td><strong>${escapeHtml(t.ticket_code)}</strong><small>ID ${t.ticket_id}</small></td><td>${escapeHtml(t.full_name)}<small>${escapeHtml(t.phone)}</small></td><td><strong>${escapeHtml([t.device_type, t.brand, t.model].filter(Boolean).join(' ') || 'Chưa cập nhật model')}</strong><small>${escapeHtml(t.serial_no)}</small></td><td><span class="priority priority-${escapeHtml(t.priority).toLowerCase()}">${escapeHtml(prettyPriority(t.priority))}</span></td><td><span class="status-badge">${escapeHtml(prettyStatus(t.status))}</span></td><td>${escapeHtml(dateText(t.due_date))}</td><td><button class="text-button" data-ticket-id="${t.ticket_id}" type="button">Xem</button> <button class="text-button" data-edit-ticket="${t.ticket_id}" type="button">Sửa</button> <button class="text-button" data-delete-ticket="${t.ticket_id}" type="button">Xóa</button></td></tr>`).join('')}</tbody></table>`;
       $('tickets-table-wrap').querySelectorAll('[data-ticket-id]').forEach((button) => button.addEventListener('click', () => { state.selectedTicketId = button.dataset.ticketId; showView('detail'); }));
+      $('tickets-table-wrap').querySelectorAll('[data-edit-ticket]').forEach((button) => button.addEventListener('click', () => editTicket(button.dataset.editTicket)));
+      $('tickets-table-wrap').querySelectorAll('[data-delete-ticket]').forEach((button) => button.addEventListener('click', () => deleteTicket(button.dataset.deleteTicket)));
     } catch (error) { setState('tickets-state', 'error', `Không tải được danh sách: ${error.message}`, loadTickets); }
+  }
+
+  async function editTicket(ticketId) {
+    const ticket = state.tickets.find((item) => String(item.ticket_id) === String(ticketId));
+    if (!ticket) return alert('Không tìm thấy phiếu bảo hành.');
+    const issueDesc = prompt('Mô tả sự cố:', ticket.issue_desc);
+    if (issueDesc === null) return;
+    const priority = prompt('Mức ưu tiên (CAO, TRUNG_BINH, THAP):', ticket.priority);
+    if (priority === null) return;
+    try {
+      await TicketsApi.update(ticketId, { issue_desc: issueDesc.trim(), priority: priority.trim().toUpperCase() });
+      await loadTickets();
+      if (String(state.selectedTicketId) === String(ticketId)) await loadTicketDetail(ticketId);
+      alert('Đã cập nhật phiếu bảo hành.');
+    } catch (error) { alert(`Không thể sửa phiếu: ${error.message}`); }
+  }
+
+  async function deleteTicket(ticketId) {
+    const ticket = state.tickets.find((item) => String(item.ticket_id) === String(ticketId));
+    if (!ticket) return alert('Không tìm thấy phiếu bảo hành.');
+    if (!confirm(`Bạn có chắc muốn xóa phiếu ${ticket.ticket_code}?`)) return;
+    try {
+      await TicketsApi.remove(ticketId);
+      if (String(state.selectedTicketId) === String(ticketId)) {
+        state.selectedTicketId = null;
+        $('ticket-detail-content').replaceChildren();
+        setState('ticket-detail-state', 'empty', 'Phiếu đã bị xóa.');
+      }
+      await loadTickets();
+      alert('Đã xóa phiếu bảo hành.');
+    } catch (error) { alert(`Không thể xóa phiếu: ${error.message}`); }
   }
 
   async function loadTicketDetail(id) {
@@ -139,7 +254,7 @@
     try {
       const t = await TicketsApi.get(id);
       clearState('ticket-detail-state');
-      $('ticket-detail-content').innerHTML = `<div class="detail-hero"><div><span class="eyebrow">MÃ PHIẾU</span><h3>${escapeHtml(t.ticket_code)}</h3><p>Tiếp nhận lúc ${escapeHtml(dateText(t.received_at))}</p></div><span class="status-badge large">${escapeHtml(prettyStatus(t.status))}</span></div><div class="detail-grid"><section><h4>Khách hàng</h4><dl class="detail-list"><div><dt>Họ tên</dt><dd>${escapeHtml(t.full_name)}</dd></div><div><dt>Số điện thoại</dt><dd>${escapeHtml(t.phone)}</dd></div><div><dt>Email</dt><dd>${escapeHtml(t.email || 'Chưa cập nhật')}</dd></div></dl></section><section><h4>Thiết bị</h4><dl class="detail-list"><div><dt>Số serial</dt><dd>${escapeHtml(t.serial_no)}</dd></div><div><dt>Ngày mua</dt><dd>${escapeHtml(t.purchase_date)}</dd></div><div><dt>Bảo hành</dt><dd>${escapeHtml(t.warranty_months)} tháng</dd></div></dl></section><section><h4>Phân loại yêu cầu</h4><dl class="detail-list"><div><dt>Nhóm lỗi</dt><dd>${escapeHtml(t.category_name || 'Chưa phân loại')}</dd></div><div><dt>Mức ưu tiên</dt><dd>${escapeHtml(prettyPriority(t.priority))}</dd></div><div><dt>Hạn xử lý</dt><dd>${escapeHtml(dateText(t.due_date))}</dd></div></dl></section><section><h4>Mô tả sự cố</h4><p class="issue-description">${escapeHtml(t.issue_desc)}</p></section></div>`;
+      $('ticket-detail-content').innerHTML = `<div class="detail-hero"><div><span class="eyebrow">MÃ PHIẾU</span><h3>${escapeHtml(t.ticket_code)}</h3><p>Tiếp nhận lúc ${escapeHtml(dateText(t.received_at))}</p></div><span class="status-badge large">${escapeHtml(prettyStatus(t.status))}</span></div><div class="detail-grid"><section><h4>Khách hàng</h4><dl class="detail-list"><div><dt>Họ tên</dt><dd>${escapeHtml(t.full_name)}</dd></div><div><dt>Số điện thoại</dt><dd>${escapeHtml(t.phone)}</dd></div><div><dt>Email</dt><dd>${escapeHtml(t.email || 'Chưa cập nhật')}</dd></div></dl></section><section><h4>Thiết bị</h4><dl class="detail-list"><div><dt>Loại thiết bị</dt><dd>${escapeHtml([t.device_type, t.brand, t.model].filter(Boolean).join(' ') || 'Chưa cập nhật model')}</dd></div><div><dt>Số serial</dt><dd>${escapeHtml(t.serial_no)}</dd></div><div><dt>Ngày mua</dt><dd>${escapeHtml(t.purchase_date)}</dd></div><div><dt>Bảo hành</dt><dd>${escapeHtml(t.warranty_months)} tháng</dd></div></dl></section><section><h4>Phân loại yêu cầu</h4><dl class="detail-list"><div><dt>Nhóm lỗi</dt><dd>${escapeHtml(t.category_name || 'Chưa phân loại')}</dd></div><div><dt>Mức ưu tiên</dt><dd>${escapeHtml(prettyPriority(t.priority))}</dd></div><div><dt>Hạn xử lý</dt><dd>${escapeHtml(dateText(t.due_date))}</dd></div></dl></section><section><h4>Mô tả sự cố</h4><p class="issue-description">${escapeHtml(t.issue_desc)}</p></section></div>`;
     } catch (error) { setState('ticket-detail-state', 'error', `Không tải được chi tiết: ${error.message}`, () => loadTicketDetail(id)); }
   }
 
@@ -153,16 +268,132 @@
       state.customers = customers; state.devices = devices; state.categories = categories;
       $('customer-count').textContent = `${customers.length} khách hàng`;
       if (!customers.length) setState('catalog-customers-state', 'empty', 'Chưa có khách hàng trong database.');
-      else { clearState('catalog-customers-state'); $('catalog-customers-table-wrap').innerHTML = `<table><thead><tr><th>Khách hàng</th><th>Liên hệ</th></tr></thead><tbody>${customers.map((c) => `<tr><td><strong>${escapeHtml(c.full_name)}</strong><small>ID ${c.customer_id}</small></td><td>${escapeHtml(c.phone)}<small>${escapeHtml(c.email || 'Chưa có email')}</small></td></tr>`).join('')}</tbody></table>`; }
+      else {
+        clearState('catalog-customers-state');
+
+        $('catalog-customers-table-wrap').innerHTML = `
+          <table>
+            <thead>
+              <tr>
+                <th>Khách hàng</th>
+                <th>Liên hệ</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${customers.map((c) => `
+                <tr>
+                  <td>
+                    <strong>${escapeHtml(c.full_name)}</strong>
+                    <small>ID ${c.customer_id}</small>
+                  </td>
+                  <td>
+                    ${escapeHtml(c.phone)}
+                    <small>${escapeHtml(c.email || 'Chưa có email')}</small>
+                  </td>
+                  <td>
+                    <button type="button"
+                      class="text-button"
+                      data-edit-customer="${c.customer_id}">
+                      Sửa
+                    </button>
+                    <button type="button"
+                      class="text-button"
+                      data-delete-customer="${c.customer_id}">
+                      Xóa
+                    </button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>`;
+
+        $('catalog-customers-table-wrap')
+          .querySelectorAll('[data-edit-customer]')
+          .forEach((button) => {
+            button.addEventListener('click', () => {
+              editCustomer(button.dataset.editCustomer);
+            });
+          });
+
+        $('catalog-customers-table-wrap')
+          .querySelectorAll('[data-delete-customer]')
+          .forEach((button) => {
+            button.addEventListener('click', () => {
+              deleteCustomer(button.dataset.deleteCustomer);
+            });
+          });
+      }
       $('device-count').textContent = `${devices.length} thiết bị`; $('category-count').textContent = `${categories.length} nhóm lỗi`;
       if (!devices.length) setState('devices-state', 'empty', 'Chưa có thiết bị trong database.');
-      else { clearState('devices-state'); $('devices-table-wrap').innerHTML = `<table><thead><tr><th>Serial</th><th>Khách hàng</th><th>Ngày mua</th><th>Bảo hành</th></tr></thead><tbody>${devices.map((d) => `<tr><td><strong>${escapeHtml(d.serial_no)}</strong><small>ID ${d.device_id}</small></td><td>${escapeHtml(d.customer_name)}<small>${escapeHtml(d.customer_phone)}</small></td><td>${escapeHtml(d.purchase_date)}</td><td><span class="${d.warranty_status === 'CON_HAN' ? 'status-badge' : 'status-badge expired'}">${d.warranty_status === 'CON_HAN' ? 'Còn hạn' : 'Hết hạn'}</span><small>${escapeHtml(d.warranty_expires_on || '—')}</small></td></tr>`).join('')}</tbody></table>`; }
+      else { clearState('devices-state'); $('devices-table-wrap').innerHTML = `<table><thead><tr><th>ID</th><th>Loại thiết bị</th><th>Thiết bị</th><th>Serial</th><th>Khách hàng</th><th>Ngày mua</th><th>Tình trạng bảo hành</th></tr></thead><tbody>${devices.map((d) => `<tr><td>${d.device_id}</td><td>${escapeHtml(d.device_type || 'Điện thoại')}</td><td><strong>${escapeHtml([d.brand, d.model].filter((value) => value && !['Khác', 'Chưa cập nhật'].includes(value)).join(' ') || 'Chưa cập nhật model')}</strong></td><td>${escapeHtml(d.serial_no)}</td><td>${escapeHtml(d.customer_name)}<small>${escapeHtml(d.customer_phone)}</small></td><td>${escapeHtml(d.purchase_date)}</td><td><span class="${d.warranty_status === 'CON_HAN' ? 'status-badge' : 'status-badge expired'}">${d.warranty_status === 'CON_HAN' ? 'Còn hạn' : 'Hết hạn'}</span><small>Hết hạn: ${escapeHtml(d.warranty_expires_on || '—')}</small></td></tr>`).join('')}</tbody></table>`; }
       if (!categories.length) setState('categories-state', 'empty', 'Chưa có nhóm lỗi trong database.');
       else { clearState('categories-state'); $('categories-table-wrap').innerHTML = `<table><thead><tr><th>Tên nhóm lỗi</th><th>Mô tả</th></tr></thead><tbody>${categories.map((c) => `<tr><td><strong>${escapeHtml(c.category_name)}</strong><small>ID ${c.category_id}</small></td><td>${escapeHtml(c.description || '—')}</td></tr>`).join('')}</tbody></table>`; }
     } catch (error) {
       setState('catalog-customers-state', 'error', `Không tải được khách hàng: ${error.message}`, loadCatalog);
       setState('devices-state', 'error', `Không tải được thiết bị: ${error.message}`, loadCatalog);
       setState('categories-state', 'error', `Không tải được nhóm lỗi: ${error.message}`, loadCatalog);
+    }
+  }
+
+  async function editCustomer(customerId) {
+    const customer = state.customers.find(
+      (c) => String(c.customer_id) === String(customerId)
+    );
+
+    if (!customer) {
+      alert('Không tìm thấy khách hàng.');
+      return;
+    }
+
+    const fullName = prompt('Họ tên khách hàng:', customer.full_name);
+    if (fullName === null) return;
+
+    const phone = prompt('Số điện thoại:', customer.phone);
+    if (phone === null) return;
+
+    const email = prompt('Email (có thể để trống):', customer.email || '');
+    if (email === null) return;
+
+    try {
+      await CustomersApi.update(customerId, {
+        full_name: fullName.trim(),
+        phone: phone.trim(),
+        email: email.trim()
+      });
+
+      alert('Cập nhật khách hàng thành công.');
+      await loadCatalog();
+      await loadPickerData();
+    } catch (error) {
+      alert(`Không thể cập nhật khách hàng: ${error.message}`);
+    }
+  }
+
+  async function deleteCustomer(customerId) {
+    const customer = state.customers.find(
+      (c) => String(c.customer_id) === String(customerId)
+    );
+
+    if (!customer) {
+      alert('Không tìm thấy khách hàng.');
+      return;
+    }
+
+    const confirmed = confirm(
+      `Bạn có chắc muốn xóa khách hàng "${customer.full_name}" không?`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await CustomersApi.remove(customerId);
+
+      alert('Xóa khách hàng thành công.');
+      await loadCatalog();
+      await loadPickerData();
+    } catch (error) {
+      alert(`Không thể xóa khách hàng: ${error.message}`);
     }
   }
 
@@ -186,7 +417,7 @@
     $('login-message').className = 'form-message'; $('login-message').textContent = '';
     try {
       const result = await ApiClient.post('/api/login', Object.fromEntries(new FormData(form)));
-      sessionStorage.setItem('warranty_api_token', result.token);
+      sessionStorage.setItem('warranty_api_token', result.data.token);
       showApp();
     } catch (error) {
       $('login-message').className = 'form-message error';

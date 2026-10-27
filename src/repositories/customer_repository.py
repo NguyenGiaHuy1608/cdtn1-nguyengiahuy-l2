@@ -24,3 +24,29 @@ class CustomerRepository:
             conn.commit(); row=conn.execute('SELECT * FROM customer WHERE customer_id=?',(cur.lastrowid,)).fetchone()
             return dict(row)
         finally: conn.close()
+
+    def update(self, customer_id, data):
+        conn = connect_db()
+        try:
+            conn.execute('UPDATE customer SET full_name=?, phone=?, email=? WHERE customer_id=?',
+                         (data['full_name'], data['phone'], data.get('email'), customer_id))
+            conn.commit()
+            row = conn.execute('SELECT * FROM customer WHERE customer_id=?', (customer_id,)).fetchone()
+            return dict(row) if row else None
+        finally:
+            conn.close()
+
+    def delete(self, customer_id):
+        conn = connect_db()
+        try:
+            row = conn.execute('SELECT customer_id FROM customer WHERE customer_id=?', (customer_id,)).fetchone()
+            if not row:
+                return False
+            linked = conn.execute('SELECT 1 FROM device WHERE customer_id=? LIMIT 1', (customer_id,)).fetchone()
+            if linked:
+                return None
+            conn.execute('DELETE FROM customer WHERE customer_id=?', (customer_id,))
+            conn.commit()
+            return True
+        finally:
+            conn.close()
