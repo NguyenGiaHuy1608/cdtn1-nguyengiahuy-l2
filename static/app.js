@@ -24,6 +24,18 @@
     }
   }
   function clearState(id) { const el = $(id); if (el) { el.hidden = true; el.replaceChildren(); } }
+  const successTimers = new Map();
+  function showSuccessMessage(id, message, duration = 3500) {
+    const element = $(id);
+    if (!element) return;
+    clearTimeout(successTimers.get(id));
+    element.className = 'form-message success';
+    element.textContent = message;
+    successTimers.set(id, setTimeout(() => {
+      if (element.textContent === message) { element.textContent = ''; element.className = 'form-message'; }
+      successTimers.delete(id);
+    }, duration));
+  }
   function showView(name) {
     document.querySelectorAll('.view').forEach((view) => {
       const active = view.id === `view-${name}`;
@@ -37,6 +49,7 @@
   document.querySelectorAll('.nav-link').forEach((button) => button.addEventListener('click', () => showView(button.dataset.view)));
   $('refresh-tickets').addEventListener('click', loadTickets);
   $('back-to-tickets').addEventListener('click', () => showView('tickets'));
+  $('export-ticket').addEventListener('click', exportSelectedTicket);
   $('refresh-catalog').addEventListener('click', loadCatalog);
 
   async function loadCustomers() {
@@ -144,8 +157,7 @@
       $('ticket-device').value = String(device.device_id);
       deviceCreatePanel.hidden = true;
       deviceCreateForm.reset();
-      deviceCreateMessage.className = 'form-message success';
-      deviceCreateMessage.textContent = 'Đã lưu thiết bị vào database và liên kết với khách hàng.';
+      showSuccessMessage('device-create-msg', 'Đã lưu thiết bị vào database và liên kết với khách hàng.');
       clearState('device-picker-state');
       if ($('view-catalog') && $('view-catalog').classList.contains('active')) await loadCatalog();
     } catch (error) {
@@ -178,7 +190,7 @@
     button.disabled = true; button.textContent = 'Đang tạo…'; $('customer-msg').textContent = '';
     try {
       const customer = await CustomersApi.create(Object.fromEntries(new FormData(form)));
-      $('customer-msg').className = 'form-message success'; $('customer-msg').textContent = `Tạo khách hàng thành công · ID ${customer.customer_id}`;
+      showSuccessMessage('customer-msg', `Tạo khách hàng thành công · ID ${customer.customer_id}`);
       form.reset(); await loadPickerData();
       $('ticket-customer').value = String(customer.customer_id);
       renderDeviceOptions(customer.customer_id);
@@ -194,7 +206,7 @@
     $('ticket-msg').className = 'form-message'; $('ticket-msg').textContent = '';
     try {
       const ticket = await TicketsApi.create(Object.fromEntries(new FormData(form)));
-      $('ticket-msg').className = 'form-message success'; $('ticket-msg').textContent = `Tạo phiếu thành công · ${ticket.ticket_code}`;
+      showSuccessMessage('ticket-msg', `Tạo phiếu thành công · ${ticket.ticket_code}`);
       state.selectedTicketId = ticket.ticket_id;
       form.reset(); await loadPickerData();
       await loadTickets();
@@ -254,8 +266,42 @@
     try {
       const t = await TicketsApi.get(id);
       clearState('ticket-detail-state');
+      $('export-ticket').disabled = false;
       $('ticket-detail-content').innerHTML = `<div class="detail-hero"><div><span class="eyebrow">MÃ PHIẾU</span><h3>${escapeHtml(t.ticket_code)}</h3><p>Tiếp nhận lúc ${escapeHtml(dateText(t.received_at))}</p></div><span class="status-badge large">${escapeHtml(prettyStatus(t.status))}</span></div><div class="detail-grid"><section><h4>Khách hàng</h4><dl class="detail-list"><div><dt>Họ tên</dt><dd>${escapeHtml(t.full_name)}</dd></div><div><dt>Số điện thoại</dt><dd>${escapeHtml(t.phone)}</dd></div><div><dt>Email</dt><dd>${escapeHtml(t.email || 'Chưa cập nhật')}</dd></div></dl></section><section><h4>Thiết bị</h4><dl class="detail-list"><div><dt>Loại thiết bị</dt><dd>${escapeHtml([t.device_type, t.brand, t.model].filter(Boolean).join(' ') || 'Chưa cập nhật model')}</dd></div><div><dt>Số serial</dt><dd>${escapeHtml(t.serial_no)}</dd></div><div><dt>Ngày mua</dt><dd>${escapeHtml(t.purchase_date)}</dd></div><div><dt>Bảo hành</dt><dd>${escapeHtml(t.warranty_months)} tháng</dd></div></dl></section><section><h4>Phân loại yêu cầu</h4><dl class="detail-list"><div><dt>Nhóm lỗi</dt><dd>${escapeHtml(t.category_name || 'Chưa phân loại')}</dd></div><div><dt>Mức ưu tiên</dt><dd>${escapeHtml(prettyPriority(t.priority))}</dd></div><div><dt>Hạn xử lý</dt><dd>${escapeHtml(dateText(t.due_date))}</dd></div></dl></section><section><h4>Mô tả sự cố</h4><p class="issue-description">${escapeHtml(t.issue_desc)}</p></section></div>`;
-    } catch (error) { setState('ticket-detail-state', 'error', `Không tải được chi tiết: ${error.message}`, () => loadTicketDetail(id)); }
+    } catch (error) { $('export-ticket').disabled = true; setState('ticket-detail-state', 'error', `Không tải được chi tiết: ${error.message}`, () => loadTicketDetail(id)); }
+  }
+
+  async function exportSelectedTicket() {
+    if (!state.selectedTicketId) return;
+    // Open synchronously from the click handler so the browser does not block the print window.
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Trình duyệt đã chặn cửa sổ xuất phiếu. Hãy cho phép pop-up rồi thử lại.');
+      return;
+    }
+    printWindow.document.write('<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>Phiếu bảo hành</title></head><body style="font-family:Arial,sans-serif;padding:32px">Đang tạo phiếu bảo hành…</body></html>');
+    printWindow.document.close();
+    try {
+      const t = await TicketsApi.get(state.selectedTicketId);
+      const safe = escapeHtml;
+      const rows = [
+        ['Mã phiếu', t.ticket_code], ['Ngày tiếp nhận', dateText(t.received_at)],
+        ['Trạng thái', prettyStatus(t.status)], ['Khách hàng', t.full_name],
+        ['Số điện thoại', t.phone], ['Email', t.email || 'Chưa cập nhật'],
+        ['Thiết bị', [t.device_type, t.brand, t.model].filter(Boolean).join(' ') || 'Chưa cập nhật model'],
+        ['Số serial', t.serial_no], ['Ngày mua', t.purchase_date],
+        ['Thời hạn bảo hành', `${t.warranty_months} tháng`], ['Nhóm lỗi', t.category_name || 'Chưa phân loại'],
+        ['Mức ưu tiên', prettyPriority(t.priority)], ['Hạn xử lý', dateText(t.due_date)],
+        ['Mô tả sự cố', t.issue_desc]
+      ];
+      printWindow.document.open();
+      printWindow.document.write(`<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Phieu-bao-hanh-${safe(t.ticket_code)}</title><style>
+        *{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#1c2d3b;margin:0;padding:32px}header{text-align:center;border-bottom:2px solid #176b83;padding-bottom:18px;margin-bottom:22px}h1{font-size:23px;margin:0 0 8px;color:#16465b}header p{margin:0;color:#526879;font-size:12px}.code{font-size:17px;font-weight:bold;margin-top:12px}table{width:100%;border-collapse:collapse}th,td{padding:10px 12px;border:1px solid #d8e1e8;text-align:left;vertical-align:top;font-size:12px;line-height:1.5}th{width:30%;background:#f2f6f8}footer{display:flex;justify-content:space-between;gap:30px;margin-top:50px;text-align:center;font-size:12px}.sign{width:45%;padding-top:12px}@page{size:A4;margin:16mm}@media print{body{padding:0}.no-print{display:none}}
+      </style></head><body><header><h1>PHIẾU TIẾP NHẬN BẢO HÀNH</h1><p>MEKONG MOBILE · SMART CRM</p><div class="code">${safe(t.ticket_code)}</div></header><table><tbody>${rows.map(([label,value]) => `<tr><th>${safe(label)}</th><td>${safe(value)}</td></tr>`).join('')}</tbody></table><footer><div class="sign"><strong>Khách hàng</strong><p>(Ký và ghi rõ họ tên)</p></div><div class="sign"><strong>Nhân viên tiếp nhận</strong><p>(Ký và ghi rõ họ tên)</p></div></footer><p class="no-print" style="margin-top:28px;color:#526879;font-size:12px">Trong hộp thoại in, chọn máy in hoặc “Save as PDF” để lưu phiếu.</p><script>window.addEventListener('load',()=>setTimeout(()=>window.print(),250));<\/script></body></html>`);
+      printWindow.document.close();
+    } catch (error) {
+      printWindow.document.body.textContent = `Không thể xuất phiếu bảo hành: ${error.message}`;
+    }
   }
 
   async function loadCatalog() {

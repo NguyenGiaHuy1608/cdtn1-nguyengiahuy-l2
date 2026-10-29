@@ -164,6 +164,8 @@ Có thể tái hiện bằng database kiểm thử riêng hoặc tạm ngắt AP
 
 - Trong mục **Dữ liệu nền**, người dùng có thể sửa thông tin khách hàng hoặc xóa hồ sơ chưa có thiết bị liên kết. Hồ sơ đã có thiết bị được bảo vệ để tránh vi phạm liên kết dữ liệu.
 - Trong **Danh sách phiếu**, có thao tác xem, sửa mô tả sự cố/mức ưu tiên và xóa phiếu bảo hành.
+- Trong **Chi tiết phiếu**, nhấn **Xuất phiếu bảo hành** để mở bản in A4; tại hộp thoại in của trình duyệt, chọn **Save as PDF** để lưu thành tệp PDF hoặc chọn máy in. Nút chỉ hoạt động sau khi tải được chi tiết một phiếu.
+- Thông báo thành công khi tạo khách hàng, thiết bị hoặc phiếu bảo hành tự ẩn sau khoảng 3,5 giây; thông báo lỗi vẫn được giữ lại để người dùng đọc và xử lý.
 - Tại màn hình **Tiếp nhận**, chọn khách hàng rồi nhấn **+ Thêm thiết bị** để mở biểu mẫu đăng ký loại thiết bị (điện thoại, máy tính bảng, laptop hoặc khác), hãng, model, serial/IMEI, ngày mua và thời hạn bảo hành.
 - Thiết bị mới được lưu vào SQLite và liên kết với khách hàng đã chọn. Danh sách thiết bị chỉ hiển thị thiết bị của khách hàng đang chọn; API kiểm tra liên kết khách hàng-thiết bị khi tạo phiếu.
 - Khi nâng cấp database cũ, ứng dụng tự bổ sung cột `device_type` với giá trị mặc định `Điện thoại` cho dữ liệu hiện có.
