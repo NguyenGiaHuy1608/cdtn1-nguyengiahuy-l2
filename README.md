@@ -40,21 +40,11 @@ python app.py
 
 Nếu PowerShell chặn kích hoạt virtual environment, có thể dùng CMD và lệnh `.venv\Scripts\activate.bat`, hoặc chạy trực tiếp `.venv\Scripts\python.exe -m pip install -r requirements.txt` rồi `.venv\Scripts\python.exe app.py`.
 
-Mở `http://127.0.0.1:5000`. Tài khoản demo mặc định: `demo` / `demo123` (có thể thay bằng biến môi trường). Giữ terminal đang chạy để website tiếp tục hoạt động; nhấn `Ctrl+C` để dừng Flask.
+Mở `http://127.0.0.1:5000`.  Giữ terminal đang chạy để website tiếp tục hoạt động; nhấn `Ctrl+C` để dừng Flask.
 
 ### Cấu hình môi trường
 
 `.env.example` là mẫu an toàn được commit. Có thể sao chép thành `.env` để cấu hình cục bộ:
-
-```dotenv
-SECRET_KEY=replace-with-a-local-development-secret
-DEMO_USERNAME=demo
-DEMO_PASSWORD=demo123
-# Tùy chọn: đường dẫn SQLite khác. Mặc định là data/warranty.db
-# DATABASE_PATH=data/warranty.db
-```
-
-Không commit `.env`, mật khẩu thật, token, API key hoặc secret. `.env` bị loại khỏi Git qua `.gitignore`. Giá trị mặc định chỉ dành cho demo cục bộ.
 
 ## 4. SQLite: vị trí và kiểm tra kết nối
 
