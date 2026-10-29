@@ -8,7 +8,7 @@ Base URL local: `http://127.0.0.1:5000`
   - `200`: `data.token`, `data.token_type = Bearer`, `data.expires_in = 28800`.
   - `401`: thông tin đăng nhập sai.
 - Các API nghiệp vụ yêu cầu header `Authorization: Bearer <token>`.
-- Token được ký và có thời hạn 8 giờ. Prototype mặc định dùng tài khoản `demo` / `demo123`; đổi bằng biến môi trường `DEMO_USERNAME`, `DEMO_PASSWORD`, `SECRET_KEY` trước khi chạy nếu cần.
+- Token được ký và có thời hạn 8 giờ.
 - Token thiếu/sai/hết hạn trả `401 TOKEN_KHONG_HOP_LE`. Frontend xóa token khỏi sessionStorage và quay lại màn hình đăng nhập.
 
 ## Khách hàng
