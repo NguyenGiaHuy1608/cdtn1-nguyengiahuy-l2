@@ -1,0 +1,6 @@
+services:
+  warranty-app:
+    build: .
+    container_name: warranty-container
+    ports:
+      - "5000:5000"
