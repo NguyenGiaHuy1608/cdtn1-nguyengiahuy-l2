@@ -21,6 +21,16 @@
 **Mô tả:**  
 Sau khi người dùng thực hiện thành công thao tác thêm, sửa hoặc cập nhật dữ liệu, thông báo màu xanh vẫn tiếp tục hiển thị trên giao diện. Điều này có thể làm người dùng nhầm lẫn rằng thông báo vẫn liên quan đến thao tác hiện tại.
 
+**Các bước tái hiện:**
+
+1. Mở hệ thống và thực hiện thao tác thêm hoặc cập nhật dữ liệu.
+2. Thực hiện thao tác thành công.
+3. Quan sát thông báo thành công trên giao diện.
+
+**Kết quả thực tế trước khi sửa:**
+
+Thông báo thành công vẫn hiển thị trên giao diện và không tự động biến mất sau một khoảng thời gian.
+
 **Kết quả mong đợi:**  
 Thông báo thành công hiển thị trong một khoảng thời gian phù hợp và tự động biến mất.
 
@@ -38,6 +48,16 @@ Cập nhật cơ chế hiển thị thông báo trong phần giao diện để t
 
 **Mô tả:**  
 Phiếu bảo hành đã được tạo và quản lý trong hệ thống nhưng người dùng chưa có chức năng xuất thông tin phiếu để sử dụng bên ngoài hệ thống.
+
+**Các bước tái hiện:**
+
+1. Mở danh sách phiếu bảo hành trên hệ thống.
+2. Chọn một phiếu bảo hành cần sử dụng hoặc lưu thông tin.
+3. Kiểm tra các chức năng có sẵn trên giao diện.
+
+**Kết quả thực tế trước khi sửa:**
+
+Hệ thống chưa có chức năng xuất thông tin phiếu bảo hành để người dùng lưu hoặc sử dụng bên ngoài hệ thống.
 
 **Kết quả mong đợi:**  
 Người dùng có thể thực hiện chức năng xuất thông tin phiếu bảo hành từ giao diện hệ thống.
