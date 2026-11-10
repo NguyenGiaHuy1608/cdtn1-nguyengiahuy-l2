@@ -66,6 +66,17 @@ class ModuleTests(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['error'], 'DU_LIEU_KHONG_HOP_LE')
 
+    def test_ticket_description_boundary_accepted(self):
+        response = self.client.post('/api/tickets', json={
+            'customer_id': 1,
+            'device_id': 1,
+            'category_id': 1,
+            'issue_desc': '1234567890',
+            'priority': 'TRUNG_BINH'
+        })
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(response.json['data']['ticket_code'].startswith('BH-'))
+
     def test_customer_list_returns_seed_data(self):
         response = self.client.get('/api/customers')
         self.assertEqual(response.status_code, 200)
