@@ -1,13 +1,24 @@
-# Ảnh minh chứng Bài tập 2
+## Chạy hệ thống
 
-Lưu ảnh chụp màn hình chạy thật vào thư mục này theo tên gợi ý trong README:
+Yêu cầu: Đã cài đặt Docker Desktop và Docker Compose.
 
-- `muc3-app-running.png`
-- `muc3-sqlite.png`
-- `muc4-tests-pass.png`
-- `muc4-pipeline-ai.png`
-- `muc5-loading.png`
-- `muc5-empty.png`
-- `muc5-error.png`
+Mở terminal tại thư mục gốc của repository và chạy:
 
-Ảnh phải lấy từ ứng dụng/terminal trên máy thực hiện bài. Không đưa hình minh họa giả làm kết quả chạy. Sau khi có ảnh, gửi chúng trong cuộc trò chuyện để ghép vào PDF cuối cùng.
+```powershell
+docker compose up -d --build
+docker compose ps
+```
+
+Sau khi dịch vụ khởi động, mở trình duyệt tại:
+
+`http://127.0.0.1:5000`
+
+Để kiểm tra API đang hoạt động, truy cập:
+
+`http://127.0.0.1:5000/api/health`
+
+Bộ kiểm thử tự động có thể chạy bằng lệnh:
+
+```powershell
+docker compose exec warranty python -m unittest discover -s tests -v
+```
