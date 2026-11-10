@@ -39,3 +39,10 @@
 - **Quyết định:** SỬA.
 - **Lý do:** Một lựa chọn thiết kế cần có lợi ích, đánh đổi và cách kiểm chứng.
 - **Ảnh hưởng:** Chia lớp làm tăng số tệp và chi phí điều hướng mã; đổi lại, test service có thể chạy không cần khởi động web server. Kiểm chứng bằng test service và rà soát import giữa routes → services → repositories.
+
+## TD-07 — Bổ sung khả năng kiểm chứng và triển khai hệ thống
+
+- **Bối cảnh:** Bài tập 3 yêu cầu bổ sung kiểm thử, ghi nhận lỗi, hướng dẫn triển khai, kiểm tra bảo mật và minh chứng khả năng tái lập hệ thống.
+- **Quyết định:** BỔ SUNG.
+- **Lý do:** Cần giúp người kiểm tra có thể chạy lại hệ thống, thực hiện kiểm thử tự động và đối chiếu tài liệu với phiên bản mã nguồn được nộp.
+- **Ảnh hưởng:** Bổ sung các tài liệu `test-plan.md`, `test-report.md`, `bug-log.md`, `deployment-guide.md` và checklist bảo mật; cấu hình Docker có health check API và bộ kiểm thử được chạy bằng một lệnh.
