@@ -1,10 +1,10 @@
-# Bài tập 2 — Tiếp nhận và phân loại yêu cầu bảo hành
+# Hệ thống tiếp nhận và quản lý yêu cầu bảo hành thiết bị
 
 **Sinh viên:** Nguyễn Gia Huy
 **MSSV:** 2374802010181
 **Track:** Software Engineering (SE)
 **Repository:** https://github.com/NguyenGiaHuy1608/cdtn1-nguyengiahuy-l2
-**Phiên bản bài tập:** `v0.2`
+**Phiên bản bài tập:** `v1.0`
 
 > Đây là prototype học thuật chạy cục bộ. Tài khoản demo và mô hình AI chỉ dùng để trình diễn, không dùng làm hệ thống bảo hành production.
 
@@ -27,6 +27,25 @@ Bài tập 2 bổ sung ba phần:
 
 ## 3. Cài đặt và chạy ứng dụng
 
+### Chạy hệ thống bằng Docker
+
+Đối với môi trường triển khai và kiểm tra tái lập, hệ thống có thể chạy bằng Docker Desktop và Docker Compose. Mở terminal tại thư mục gốc của repository và chạy:
+
+```powershell
+docker compose up -d --build
+docker compose ps
+```
+
+Sau khi dịch vụ khởi động thành công, mở trình duyệt tại:
+
+`http://127.0.0.1:5000`
+
+Có thể kiểm tra API đang hoạt động tại:
+
+`http://127.0.0.1:5000/api/health`
+
+### Chạy ứng dụng bằng môi trường Python cục bộ
+
 Mở terminal tại thư mục gốc repository (thư mục có `app.py` và `requirements.txt`). Trên Windows PowerShell chạy từng lệnh:
 
 ```powershell
@@ -40,11 +59,7 @@ python app.py
 
 Nếu PowerShell chặn kích hoạt virtual environment, có thể dùng CMD và lệnh `.venv\Scripts\activate.bat`, hoặc chạy trực tiếp `.venv\Scripts\python.exe -m pip install -r requirements.txt` rồi `.venv\Scripts\python.exe app.py`.
 
-Mở `http://127.0.0.1:5000`.  Giữ terminal đang chạy để website tiếp tục hoạt động; nhấn `Ctrl+C` để dừng Flask.
-
-### Cấu hình môi trường
-
-`.env.example` là mẫu an toàn được commit. Có thể sao chép thành `.env` để cấu hình cục bộ:
+Mở `http://127.0.0.1:5000`. Giữ terminal đang chạy để website tiếp tục hoạt động; nhấn `Ctrl+C` để dừng Flask.
 
 ## 4. SQLite: vị trí và kiểm tra kết nối
 
@@ -83,6 +98,8 @@ Script huấn luyện đọc dữ liệu đã làm sạch và ghi mô hình vào
 
 ## 6. Chạy kiểm thử
 
+### Kiểm thử trong môi trường Python cục bộ
+
 Cài dependencies trước nếu đây là môi trường mới:
 
 ```powershell
@@ -90,7 +107,17 @@ python -m pip install -r requirements.txt
 python -m unittest discover -s tests -v
 ```
 
-Bộ test gồm kiểm thử pipeline/mô hình và kiểm thử API/CRUD, xác thực, dữ liệu hợp lệ/không hợp lệ, biên mô tả, quy tắc bảo hành và lưu dữ liệu. Chỉ báo cáo **PASS** nếu lệnh chạy trên máy nộp bài kết thúc với `OK` và không có `ERROR`/`FAILED`. Nếu có lỗi, lưu lại traceback và sửa trước khi chụp ảnh minh chứng.
+### Kiểm thử trong môi trường Docker
+
+Sau khi hệ thống đã được khởi động bằng Docker Compose, chạy bộ kiểm thử tự động bằng lệnh:
+
+```powershell
+docker compose exec warranty python -m unittest discover -s tests -v
+```
+
+Bộ test gồm kiểm thử pipeline/mô hình và kiểm thử API/CRUD, xác thực, dữ liệu hợp lệ/không hợp lệ, biên mô tả, quy tắc bảo hành và lưu dữ liệu.
+
+Kết quả kiểm thử được xem là thành công khi lệnh chạy kết thúc với `OK` và không có `FAIL` hoặc `ERROR`. Chỉ báo cáo **PASS** sau khi bộ kiểm thử đã được chạy thành công trên môi trường thực tế.
 
 ## 7. Luồng demo giao diện
 
