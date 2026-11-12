@@ -195,4 +195,4 @@ Có thể tái hiện bằng database kiểm thử riêng hoặc tạm ngắt AP
 - Thông báo thành công khi tạo khách hàng, thiết bị hoặc phiếu bảo hành tự ẩn sau khoảng 3,5 giây; thông báo lỗi vẫn được giữ lại để người dùng đọc và xử lý.
 - Tại màn hình **Tiếp nhận**, chọn khách hàng rồi nhấn **+ Thêm thiết bị** để mở biểu mẫu đăng ký loại thiết bị (điện thoại, máy tính bảng, laptop hoặc khác), hãng, model, serial/IMEI, ngày mua và thời hạn bảo hành.
 - Thiết bị mới được lưu vào SQLite và liên kết với khách hàng đã chọn. Danh sách thiết bị chỉ hiển thị thiết bị của khách hàng đang chọn; API kiểm tra liên kết khách hàng-thiết bị khi tạo phiếu.
-- Khi nâng cấp database cũ, ứng dụng tự bổ sung cột `device_type` với giá trị mặc định `Điện thoại` cho dữ liệu hiện có.
+- Khi nâng cấp database cũ, ứng dụng tự bổ sung cột `device_type` với giá trị mặc định `Điện thoại` cho dữ liệu hiện có.git status
